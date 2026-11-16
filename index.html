@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>브롤 파이트 - 쉘리 vs 니타</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #1a1a1a;
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+            color: white;
+        }
+        .game-container {
+            width: 400px;
+            background: white;
+            border: 4px solid #333;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+        /* 경기장 영역 */
+        #gameCanvas {
+            background: #f7f7f7;
+            display: block;
+            cursor: crosshair;
+        }
+        /* 하단 패널 영역 */
+        .control-panel {
+            background: #f0f0f0;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            border-top: 3px solid #ccc;
+        }
+        .player-status-group {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+        }
+        .status-box {
+            flex: 1;
+            background: #fff;
+            padding: 8px;
+            border-radius: 8px;
+            border: 2px solid #ddd;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .status-name {
+            font-size: 13px;
+            font-weight: bold;
+            color: #d32f2f;
+            text-align: center;
+        }
+        .status-name.p2 {
+            color: #1976d2;
+        }
+        .bar-container {
+            width: 100%;
+            height: 16px;
+            background: #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+            border: 1px solid #bbb;
+        }
+        .hp-fill {
+            height: 100%;
+            background: #4caf50;
+            width: 100%;
+            transition: width 0.1s linear;
+        }
+        .hp-text {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            font-size: 10px;
+            font-weight: bold;
+            color: black;
+            text-align: center;
+            line-height: 14px;
+        }
+        .skill-bar-container {
+            width: 100%;
+            height: 12px;
+            background: #e0e0e0;
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+            border: 1px solid #bbb;
+        }
+        .skill-fill {
+            height: 100%;
+            background: #9c27b0;
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+        .skill-text {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            font-size: 9px;
+            font-weight: bold;
+            color: white;
+            text-align: center;
+            line-height: 10px;
+            text-shadow: 0 1px 1px rgba(0,0,0,0.7);
+        }
+        .exit-btn {
+            background: #e53935;
+            color: white;
+            border: none;
+            padding: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px #c62828;
+            transition: all 0.1s;
+        }
+        .exit-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 #c62828;
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    <!-- 경기장 캔버스 -->
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+
+    <!-- 하단 상태 및 컨트롤 패널 -->
+    <div class="control-panel">
+        <div class="player-status-group">
+            <!-- 쉘리 (P1) -->
+            <div class="status-box">
+                <div class="status-name">쉘리공</div>
+                <div class="bar-container">
+                    <div id="p1HpFill" class="hp-fill"></div>
+                    <div id="p1HpText" class="hp-text">1000 / 1000</div>
+                </div>
+                <div class="skill-bar-container">
+                    <div id="p1SkillFill" class="skill-fill"></div>
+                    <div id="p1SkillText" class="skill-text">스킬 준비중</div>
+                </div>
+            </div>
+            <!-- 니타 (P2) -->
+            <div class="status-box">
+                <div class="status-name p2">니타공</div>
+                <div class="bar-container">
+                    <div id="p2HpFill" class="hp-fill" style="background:#2196f3;"></div>
+                    <div id="p2HpText" class="hp-text">1000 / 1000</div>
+                </div>
+                <div class="skill-bar-container">
+                    <div id="p2SkillFill" class="skill-fill"></div>
+                    <div id="p2SkillText" class="skill-text">스킬 준비중</div>
+                </div>
+            </div>
+        </div>
+        <button class="exit-btn" onclick="location.reload()">나가기 🚪</button>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // 오디오 컨텍스트 설정 (효과음 구현용)
+    let audioCtx = null;
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+    }
+
+    // 효과음 함수들
+    function playSound(type) {
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        const now = audioCtx.currentTime;
+
+        if (type === 'shelly_shot') {
+            // 쉘리 샷건  팡! 소리
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(300, now);
+            osc.frequency.exponentialRampToValueAtTime(50, now + 0.2);
+            gainNode.gain.setValueAtTime(0.5, now);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+            osc.start(now);
+            osc.stop(now + 0.2);
+        } else if (type === 'nita_shock') {
+            // 니타 충격파 쿵! 소리
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(150, now);
+            osc.frequency.exponentialRampToValueAtTime(30, now + 0.3);
+            gainNode.gain.setValueAtTime(0.6, now);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+            osc.start(now);
+            osc.stop(now + 0.3);
+        } else if (type === 'hit') {
+            // 피격 효과음
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(200, now);
+            osc.frequency.exponentialRampToValueAtTime(80, now + 0.1);
+            gainNode.gain.setValueAtTime(0.3, now);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+            osc.start(now);
+            osc.stop(now + 0.1);
+        }
+    }
+
+    // 이미지 로드 (2번째: 니타, 3번째: 쉘리 프로필 이미지)
+    const shellyImg = new Image();
+    shellyImg.src = 'https://i.imgur.com/83U8uQn.png'; // 쉘리 프로필 대체 소스 (브롤스타즈 쉘리 공식 일러스트)
+
+    const nitaImg = new Image();
+    nitaImg.src = 'https://i.imgur.com/G5qWv4L.png'; // 니타 프로필 대체 소스 (브롤스타즈 니타 공식 일러스트)
+
+    // 게임 상태 변수
+    const p1 = {
+        x: 100, y: 200, radius: 25, hp: 1000, maxHp: 1000,
+        skillCharge: 0, maxSkillCharge: 100,
+        vx: 2, vy: 1.5, color: '#d32f2f', name: '쉘리'
+    };
+
+    const p2 = {
+        x: 300, y: 200, radius: 25, hp: 1000, maxHp: 1000,
+        skillCharge: 0, maxSkillCharge: 100,
+        vx: -1.8, vy: 2, color: '#1976d2', name: '니타'
+    };
+
+    let projectiles = [];
+    let waves = [];
+
+    // 키 입력 감지
+    const keys = {};
+    window.addEventListener('keydown', (e) => {
+        initAudio();
+        keys[e.key.toLowerCase()] = true;
+    });
+    window.addEventListener('keyup', (e) => {
+        keys[e.key.toLowerCase()] = false;
+    });
+
+    // 업데이트 로직
+    function update() {
+        // AI 또는 이동 로직 (간단한 자동 바운스 및 조작)
+        p1.x += p1.vx;
+        p1.y += p1.vy;
+        p2.x += p2.vx;
+        p2.y += p2.vy;
+
+        // 벽 충돌 처리
+        [p1, p2].forEach(p => {
+            if (p.x - p.radius < 0) { p.x = p.radius; p.vx *= -1; }
+            if (p.x + p.radius > canvas.width) { p.x = canvas.width - p.radius; p.vx *= -1; }
+            if (p.y - p.radius < 0) { p.y = p.radius; p.vy *= -1; }
+            if (p.y + p.radius > canvas.height) { p.y = canvas.height - p.radius; p.vy *= -1; }
+        });
+
+        // 공끼리 부딪힐 때 (데미지 없음 요구사항 반영)
+        const dx = p1.x - p2.x;
+        const dy = p1.y - p2.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < p1.radius + p2.radius) {
+            // 탄성 충돌만 구현 (데미지 X)
+            let tempVx = p1.vx;
+            let tempVy = p1.vy;
+            p1.vx = p2.vx;
+            p1.vy = p2.vy;
+            p2.vx = tempVx;
+            p2.vy = tempVy;
+
+            // 겹침 방지
+            const overlap = (p1.radius + p2.radius) - dist;
+            const angle = Math.atan2(dy, dx);
+            p1.x += Math.cos(angle) * overlap / 2;
+            p1.y += Math.sin(angle) * overlap / 2;
+            p2.x -= Math.cos(angle) * overlap / 2;
+            p2.y -= Math.sin(angle) * overlap / 2;
+        }
+
+        // 스킬 충전 자동 증가
+        if (p1.skillCharge < p1.maxSkillCharge) p1.skillCharge += 0.2;
+        if (p2.skillCharge < p2.maxSkillCharge) p2.skillCharge += 0.2;
+
+        // P1(쉘리) 스킬 사용 (Space바)
+        if (keys[' ']) {
+            if (p1.skillCharge >= p1.maxSkillCharge) {
+                p1.skillCharge = 0;
+                playSound('shelly_shot');
+                // 쉘리 슈퍼스택 (여러 개의 샷건 탄환 발사)
+                for (let i = -2; i <= 2; i++) {
+                    const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x) + (i * 0.15);
+                    projectiles.push({
+                        x: p1.x, y: p1.y,
+                        vx: Math.cos(angle) * 6,
+                        vy: Math.sin(angle) * 6,
+                        radius: 6, owner: 'p1', damage: 150
+                    });
+                }
+            }
+        }
+
+        // P2(니타) 스킬 사용 (Enter 또는 'e' 키)
+        if (keys['enter'] || keys['e']) {
+            if (p2.skillCharge >= p2.maxSkillCharge) {
+                p2.skillCharge = 0;
+                playSound('nita_shockwave');
+                // 니타 충격파 (전방으로 퍼지는 파동 생성)
+                waves.push({
+                    x: p2.x, y: p2.y,
+                    radius: 10, maxRadius: 100,
+                    owner: 'p2', damage: 200
+                });
+            }
+        }
+
+        // 프로젝트(탄환) 업데이트
+        projectiles.forEach((proj, index) => {
+            proj.x += proj.vx;
+            proj.y += proj.vy;
+
+            // 쉘리 탄환과 니타 충돌 체크
+            if (proj.owner === 'p1') {
+                const pd = Math.sqrt((proj.x - p2.x)**2 + (proj.y - p2.y)**2);
+                if (pd < p2.radius + proj.radius) {
+                    p2.hp = Math.max(0, p2.hp - proj.damage);
+                    playSound('hit');
+                    projectiles.splice(index, 1);
+                }
+            }
+
+            // 화면 밖으로 나가면 제거
+            if (proj.x < 0 || proj.x > canvas.width || proj.y < 0 || proj.y > canvas.height) {
+                projectiles.splice(index, 1);
+            }
+        });
+
+        // 니타 충격파 업데이트
+        waves.forEach((wave, index) => {
+            wave.radius += 3;
+            // 쉘리와의 충돌 체크
+            const wd = Math.sqrt((wave.x - p1.x)**2 + (wave.y - p1.y)**2);
+            if (wd <= wave.radius + p1.radius && wd >= wave.radius - p1.radius - 10) {
+                if (!wave.hitDone) {
+                    p1.hp = Math.max(0, p1.hp - wave.damage);
+                    playSound('hit');
+                    wave.hitDone = true;
+                }
+            }
+            if (wave.radius > wave.maxRadius) {
+                waves.splice(index, 1);
+            }
+        });
+
+        // UI 업데이트
+        document.getElementById('p1HpFill').style.width = (p1.hp / p1.maxHp * 100) + '%';
+        document.getElementById('p1HpText').innerText = `${Math.floor(p1.hp)} / ${p1.maxHp}`;
+        document.getElementById('p1SkillFill').style.width = (p1.skillCharge / p1.maxSkillCharge * 100) + '%';
+        document.getElementById('p1SkillText').innerText = p1.skillCharge >= 100 ? '스킬 사용 가능! (Space)' : `스킬 충전중..`;
+
+        document.getElementById('p2HpFill').style.width = (p2.hp / p2.maxHp * 100) + '%';
+        document.getElementById('p2HpText').innerText = `${Math.floor(p2.hp)} / ${p2.maxHp}`;
+        document.getElementById('p2SkillFill').style.width = (p2.skillCharge / p2.maxSkillCharge * 100) + '%';
+        document.getElementById('p2SkillText').innerText = p2.skillCharge >= 100 ? '스킬 사용 가능! (E)' : `스킬 충전중..`;
+    }
+
+    // 렌더링 로직
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // 경기장 그리드 배경
+        ctx.strokeStyle = '#e0e0e0';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < canvas.width; i += 40) {
+            ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke();
+        }
+
+        // 쉘리공 그리기 (3번째 사진 프로필 반영)
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(p1.x, p1.y, p1.radius, 0, Math.PI * 2);
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = p1.color;
+        ctx.stroke();
+        ctx.clip();
+        if (shellyImg.complete) {
+            ctx.drawImage(shellyImg, p1.x - p1.radius, p1.y - p1.radius, p1.radius * 2, p1.radius * 2);
+        }
+        ctx.restore();
+
+        // 니타공 그리기 (2번째 사진 프로필 반영)
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(p2.x, p2.y, p2.radius, 0, Math.PI * 2);
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = p2.color;
+        ctx.stroke();
+        ctx.clip();
+        if (nitaImg.complete) {
+            ctx.drawImage(nitaImg, p2.x - p2.radius, p2.y - p2.radius, p2.radius * 2, p2.radius * 2);
+        }
+        ctx.restore();
+
+        // 쉘리 샷건 탄환 그리기
+        projectiles.forEach(proj => {
+            ctx.beginPath();
+            ctx.arc(proj.x, proj.y, proj.radius, 0, Math.PI * 2);
+            ctx.fillStyle = '#ff9800';
+            ctx.fill();
+            ctx.closePath();
+        });
+
+        // 니타 충격파 그리기
+        waves.forEach(wave => {
+            ctx.beginPath();
+            ctx.arc(wave.x, wave.y, wave.radius, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(33, 150, 243, 0.7)';
+            ctx.lineWidth = 5;
+            ctx.stroke();
+            ctx.closePath();
+        });
+    }
+
+    // 메인 게임 루프
+    function loop() {
+        update();
+        draw();
+        requestAnimationFrame(loop);
+    }
+
+    loop();
+</script>
+
+</body>
+</html>
