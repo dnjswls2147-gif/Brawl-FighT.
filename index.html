@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>브롤 파이트 - 쉘리 vs 니타</title>
+    <title>브롤 파이트 (Brawl Fight)</title>
     <style>
         * {
             box-sizing: border-box;
@@ -22,9 +22,10 @@
             overflow: hidden;
             color: white;
         }
+        /* 화면 공통 컨테이너 */
         .game-container {
             width: 400px;
-            background: white;
+            background: #fff;
             border: 4px solid #333;
             border-radius: 12px;
             display: flex;
@@ -32,13 +33,56 @@
             overflow: hidden;
             box-shadow: 0 10px 25px rgba(0,0,0,0.5);
         }
-        /* 경기장 영역 */
-        #gameCanvas {
-            background: #f7f7f7;
-            display: block;
-            cursor: crosshair;
+        /* 로비 화면 스타일 */
+        #lobbyScreen {
+            padding: 40px 20px;
+            text-align: center;
+            background: linear-gradient(135deg, #2c3e50, #4ca1af);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 520px;
         }
-        /* 하단 패널 영역 */
+        #lobbyScreen h1 {
+            font-size: 32px;
+            margin-bottom: 20px;
+            color: #ffeb3b;
+            text-shadow: 2px 2px #000;
+        }
+        .lobby-btn {
+            width: 80%;
+            padding: 15px;
+            margin: 10px 0;
+            font-size: 18px;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px rgba(0,0,0,0.3);
+            transition: 0.1s;
+        }
+        .select-btn {
+            background-color: #ff9800;
+            color: white;
+        }
+        .start-btn {
+            background-color: #4caf50;
+            color: white;
+        }
+        .lobby-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 rgba(0,0,0,0.3);
+        }
+        /* 게임 플레이 화면 */
+        #gameScreen {
+            display: none;
+            flex-direction: column;
+        }
+        #gameCanvas {
+            background: #ffffff;
+            display: block;
+        }
         .control-panel {
             background: #f0f0f0;
             padding: 12px;
@@ -130,8 +174,8 @@
             background: #e53935;
             color: white;
             border: none;
-            padding: 12px;
-            font-size: 16px;
+            padding: 10px;
+            font-size: 15px;
             font-weight: bold;
             border-radius: 8px;
             cursor: pointer;
@@ -147,46 +191,55 @@
 <body>
 
 <div class="game-container">
-    <!-- 경기장 캔버스 -->
-    <canvas id="gameCanvas" width="400" height="400"></canvas>
+    <!-- 1. 로비 화면 -->
+    <div id="lobbyScreen">
+        <h1>BRAWL FIGHT</h1>
+        <p style="margin-bottom: 30px; font-size: 14px; color: #ddd;">쉘리공 vs 니타공의 대결!</p>
+        <button class="lobby-btn select-btn" onclick="openSelector()">선택하기</button>
+        <button class="lobby-btn start-btn" onclick="startGame()">시작하기</button>
+    </div>
 
-    <!-- 하단 상태 및 컨트롤 패널 -->
-    <div class="control-panel">
-        <div class="player-status-group">
-            <!-- 쉘리 (P1) -->
-            <div class="status-box">
-                <div class="status-name">쉘리공</div>
-                <div class="bar-container">
-                    <div id="p1HpFill" class="hp-fill"></div>
-                    <div id="p1HpText" class="hp-text">1000 / 1000</div>
+    <!-- 2. 게임 플레이 화면 -->
+    <div id="gameScreen">
+        <canvas id="gameCanvas" width="400" height="400"></canvas>
+        <div class="control-panel">
+            <div class="player-status-group">
+                <!-- 쉘리 (P1) -->
+                <div class="status-box">
+                    <div class="status-name">쉘리공</div>
+                    <div class="bar-container">
+                        <div id="p1HpFill" class="hp-fill"></div>
+                        <div id="p1HpText" class="hp-text">1000 / 1000</div>
+                    </div>
+                    <div class="skill-bar-container">
+                        <div id="p1SkillFill" class="skill-fill"></div>
+                        <div id="p1SkillText" class="skill-text">자동 충전중</div>
+                    </div>
                 </div>
-                <div class="skill-bar-container">
-                    <div id="p1SkillFill" class="skill-fill"></div>
-                    <div id="p1SkillText" class="skill-text">스킬 준비중</div>
+                <!-- 니타 (P2) -->
+                <div class="status-box">
+                    <div class="status-name p2">니타공</div>
+                    <div class="bar-container">
+                        <div id="p2HpFill" class="hp-fill" style="background:#2196f3;"></div>
+                        <div id="p2HpText" class="hp-text">1000 / 1000</div>
+                    </div>
+                    <div class="skill-bar-container">
+                        <div id="p2SkillFill" class="skill-fill"></div>
+                        <div id="p2SkillText" class="skill-text">자동 충전중</div>
+                    </div>
                 </div>
             </div>
-            <!-- 니타 (P2) -->
-            <div class="status-box">
-                <div class="status-name p2">니타공</div>
-                <div class="bar-container">
-                    <div id="p2HpFill" class="hp-fill" style="background:#2196f3;"></div>
-                    <div id="p2HpText" class="hp-text">1000 / 1000</div>
-                </div>
-                <div class="skill-bar-container">
-                    <div id="p2SkillFill" class="skill-fill"></div>
-                    <div id="p2SkillText" class="skill-text">스킬 준비중</div>
-                </div>
-            </div>
+            <button class="exit-btn" onclick="returnToLobby()">나가기 🚪</button>
         </div>
-        <button class="exit-btn" onclick="location.reload()">나가기 🚪</button>
     </div>
 </div>
 
 <script>
+    const lobbyScreen = document.getElementById('lobbyScreen');
+    const gameScreen = document.getElementById('gameScreen');
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
 
-    // 오디오 컨텍스트 설정 (효과음 구현용)
     let audioCtx = null;
     function initAudio() {
         if (!audioCtx) {
@@ -194,7 +247,6 @@
         }
     }
 
-    // 효과음 함수들
     function playSound(type) {
         if (!audioCtx) return;
         const osc = audioCtx.createOscillator();
@@ -204,7 +256,6 @@
         const now = audioCtx.currentTime;
 
         if (type === 'shelly_shot') {
-            // 쉘리 샷건  팡! 소리
             osc.type = 'sawtooth';
             osc.frequency.setValueAtTime(300, now);
             osc.frequency.exponentialRampToValueAtTime(50, now + 0.2);
@@ -213,7 +264,6 @@
             osc.start(now);
             osc.stop(now + 0.2);
         } else if (type === 'nita_shock') {
-            // 니타 충격파 쿵! 소리
             osc.type = 'triangle';
             osc.frequency.setValueAtTime(150, now);
             osc.frequency.exponentialRampToValueAtTime(30, now + 0.3);
@@ -222,7 +272,6 @@
             osc.start(now);
             osc.stop(now + 0.3);
         } else if (type === 'hit') {
-            // 피격 효과음
             osc.type = 'square';
             osc.frequency.setValueAtTime(200, now);
             osc.frequency.exponentialRampToValueAtTime(80, now + 0.1);
@@ -233,48 +282,60 @@
         }
     }
 
-    // 이미지 로드 (2번째: 니타, 3번째: 쉘리 프로필 이미지)
+    // 이미지 설정 (2번째 사진: 쉘리, 3번째 사진: 니타)[span_3](start_span)[span_3](end_span)[span_4](start_span)[span_4](end_span)
     const shellyImg = new Image();
-    shellyImg.src = 'https://i.imgur.com/83U8uQn.png'; // 쉘리 프로필 대체 소스 (브롤스타즈 쉘리 공식 일러스트)
+    shellyImg.src = 'https://i.imgur.com/83U8uQn.png'; 
 
     const nitaImg = new Image();
-    nitaImg.src = 'https://i.imgur.com/G5qWv4L.png'; // 니타 프로필 대체 소스 (브롤스타즈 니타 공식 일러스트)
+    nitaImg.src = 'https://i.imgur.com/G5qWv4L.png'; 
 
-    // 게임 상태 변수
     const p1 = {
-        x: 100, y: 200, radius: 25, hp: 1000, maxHp: 1000,
+        x: 100, y: 200, radius: 28, hp: 1000, maxHp: 1000,
         skillCharge: 0, maxSkillCharge: 100,
-        vx: 2, vy: 1.5, color: '#d32f2f', name: '쉘리'
+        vx: 2.2, vy: 1.8, color: '#d32f2f'
     };
 
     const p2 = {
-        x: 300, y: 200, radius: 25, hp: 1000, maxHp: 1000,
+        x: 300, y: 200, radius: 28, hp: 1000, maxHp: 1000,
         skillCharge: 0, maxSkillCharge: 100,
-        vx: -1.8, vy: 2, color: '#1976d2', name: '니타'
+        vx: -2.0, vy: 2.2, color: '#1976d2'
     };
 
     let projectiles = [];
     let waves = [];
+    let gameRunning = false;
 
-    // 키 입력 감지
-    const keys = {};
-    window.addEventListener('keydown', (e) => {
+    function openSelector() {
+        alert("쉘리공과 니타공이 기본 선택되어 있습니다!");
+    }
+
+    function startGame() {
         initAudio();
-        keys[e.key.toLowerCase()] = true;
-    });
-    window.addEventListener('keyup', (e) => {
-        keys[e.key.toLowerCase()] = false;
-    });
+        lobbyScreen.style.display = 'none';
+        gameScreen.style.display = 'flex';
+        p1.hp = 1000; p2.hp = 1000;
+        p1.x = 100; p1.y = 200;
+        p2.x = 300; p2.y = 200;
+        projectiles = [];
+        waves = [];
+        gameRunning = true;
+    }
 
-    // 업데이트 로직
+    function returnToLobby() {
+        gameRunning = false;
+        gameScreen.style.display = 'none';
+        lobbyScreen.style.display = 'flex';
+    }
+
     function update() {
-        // AI 또는 이동 로직 (간단한 자동 바운스 및 조작)
+        if (!gameRunning) return;
+
         p1.x += p1.vx;
         p1.y += p1.vy;
         p2.x += p2.vx;
         p2.y += p2.vy;
 
-        // 벽 충돌 처리
+        // 벽 충돌
         [p1, p2].forEach(p => {
             if (p.x - p.radius < 0) { p.x = p.radius; p.vx *= -1; }
             if (p.x + p.radius > canvas.width) { p.x = canvas.width - p.radius; p.vx *= -1; }
@@ -282,12 +343,11 @@
             if (p.y + p.radius > canvas.height) { p.y = canvas.height - p.radius; p.vy *= -1; }
         });
 
-        // 공끼리 부딪힐 때 (데미지 없음 요구사항 반영)
+        // 공끼리 부딪힐 때 (데미지 없음)
         const dx = p1.x - p2.x;
         const dy = p1.y - p2.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist < p1.radius + p2.radius) {
-            // 탄성 충돌만 구현 (데미지 X)
             let tempVx = p1.vx;
             let tempVy = p1.vy;
             p1.vx = p2.vx;
@@ -295,7 +355,6 @@
             p2.vx = tempVx;
             p2.vy = tempVy;
 
-            // 겹침 방지
             const overlap = (p1.radius + p2.radius) - dist;
             const angle = Math.atan2(dy, dx);
             p1.x += Math.cos(angle) * overlap / 2;
@@ -304,48 +363,42 @@
             p2.y -= Math.sin(angle) * overlap / 2;
         }
 
-        // 스킬 충전 자동 증가
-        if (p1.skillCharge < p1.maxSkillCharge) p1.skillCharge += 0.2;
-        if (p2.skillCharge < p2.maxSkillCharge) p2.skillCharge += 0.2;
-
-        // P1(쉘리) 스킬 사용 (Space바)
-        if (keys[' ']) {
-            if (p1.skillCharge >= p1.maxSkillCharge) {
-                p1.skillCharge = 0;
-                playSound('shelly_shot');
-                // 쉘리 슈퍼스택 (여러 개의 샷건 탄환 발사)
-                for (let i = -2; i <= 2; i++) {
-                    const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x) + (i * 0.15);
-                    projectiles.push({
-                        x: p1.x, y: p1.y,
-                        vx: Math.cos(angle) * 6,
-                        vy: Math.sin(angle) * 6,
-                        radius: 6, owner: 'p1', damage: 150
-                    });
-                }
-            }
-        }
-
-        // P2(니타) 스킬 사용 (Enter 또는 'e' 키)
-        if (keys['enter'] || keys['e']) {
-            if (p2.skillCharge >= p2.maxSkillCharge) {
-                p2.skillCharge = 0;
-                playSound('nita_shockwave');
-                // 니타 충격파 (전방으로 퍼지는 파동 생성)
-                waves.push({
-                    x: p2.x, y: p2.y,
-                    radius: 10, maxRadius: 100,
-                    owner: 'p2', damage: 200
+        // 스킬 자동 충전 및 자동 발동 로직
+        if (p1.skillCharge < p1.maxSkillCharge) {
+            p1.skillCharge += 0.5;
+        } else {
+            // 쉘리 자동 스킬 발동 (산탄 발사)
+            p1.skillCharge = 0;
+            playSound('shelly_shot');
+            for (let i = -2; i <= 2; i++) {
+                const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x) + (i * 0.15);
+                projectiles.push({
+                    x: p1.x, y: p1.y,
+                    vx: Math.cos(angle) * 6,
+                    vy: Math.sin(angle) * 6,
+                    radius: 6, owner: 'p1', damage: 120
                 });
             }
         }
 
-        // 프로젝트(탄환) 업데이트
+        if (p2.skillCharge < p2.maxSkillCharge) {
+            p2.skillCharge += 0.4;
+        } else {
+            // 니타 자동 스킬 발동 (충격파)
+            p2.skillCharge = 0;
+            playSound('nita_shock');
+            waves.push({
+                x: p2.x, y: p2.y,
+                radius: 10, maxRadius: 110,
+                owner: 'p2', damage: 160
+            });
+        }
+
+        // 탄환 업데이트
         projectiles.forEach((proj, index) => {
             proj.x += proj.vx;
             proj.y += proj.vy;
 
-            // 쉘리 탄환과 니타 충돌 체크
             if (proj.owner === 'p1') {
                 const pd = Math.sqrt((proj.x - p2.x)**2 + (proj.y - p2.y)**2);
                 if (pd < p2.radius + proj.radius) {
@@ -355,18 +408,16 @@
                 }
             }
 
-            // 화면 밖으로 나가면 제거
             if (proj.x < 0 || proj.x > canvas.width || proj.y < 0 || proj.y > canvas.height) {
                 projectiles.splice(index, 1);
             }
         });
 
-        // 니타 충격파 업데이트
+        // 충격파 업데이트
         waves.forEach((wave, index) => {
-            wave.radius += 3;
-            // 쉘리와의 충돌 체크
+            wave.radius += 3.5;
             const wd = Math.sqrt((wave.x - p1.x)**2 + (wave.y - p1.y)**2);
-            if (wd <= wave.radius + p1.radius && wd >= wave.radius - p1.radius - 10) {
+            if (wd <= wave.radius + p1.radius && wd >= wave.radius - p1.radius - 12) {
                 if (!wave.hitDone) {
                     p1.hp = Math.max(0, p1.hp - wave.damage);
                     playSound('hit');
@@ -378,31 +429,35 @@
             }
         });
 
-        // UI 업데이트
+        // 게임 종료 체크
+        if (p1.hp <= 0 || p2.hp <= 0) {
+            alert(p1.hp <= 0 ? "니타공 승리!" : "쉘리공 승리!");
+            returnToLobby();
+        }
+
+        // UI 갱신
         document.getElementById('p1HpFill').style.width = (p1.hp / p1.maxHp * 100) + '%';
         document.getElementById('p1HpText').innerText = `${Math.floor(p1.hp)} / ${p1.maxHp}`;
         document.getElementById('p1SkillFill').style.width = (p1.skillCharge / p1.maxSkillCharge * 100) + '%';
-        document.getElementById('p1SkillText').innerText = p1.skillCharge >= 100 ? '스킬 사용 가능! (Space)' : `스킬 충전중..`;
 
         document.getElementById('p2HpFill').style.width = (p2.hp / p2.maxHp * 100) + '%';
         document.getElementById('p2HpText').innerText = `${Math.floor(p2.hp)} / ${p2.maxHp}`;
         document.getElementById('p2SkillFill').style.width = (p2.skillCharge / p2.maxSkillCharge * 100) + '%';
-        document.getElementById('p2SkillText').innerText = p2.skillCharge >= 100 ? '스킬 사용 가능! (E)' : `스킬 충전중..`;
     }
 
-    // 렌더링 로직
     function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // 경기장 그리드 배경
-        ctx.strokeStyle = '#e0e0e0';
-        ctx.lineWidth = 1;
-        for (let i = 0; i < canvas.width; i += 40) {
-            ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke();
-        }
+        // 네모난 그리드 배경을 없애고 깨끗하고 선명한 경기장 배경 적용[span_5](start_span)[span_5](end_span)
+        ctx.fillStyle = '#fafafa';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // 쉘리공 그리기 (3번째 사진 프로필 반영)
+        // 테두리 강조
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(0, 0, canvas.width, canvas.height);
+
+        // 쉘리공 그리기
         ctx.save();
         ctx.beginPath();
         ctx.arc(p1.x, p1.y, p1.radius, 0, Math.PI * 2);
@@ -415,7 +470,7 @@
         }
         ctx.restore();
 
-        // 니타공 그리기 (2번째 사진 프로필 반영)
+        // 니타공 그리기
         ctx.save();
         ctx.beginPath();
         ctx.arc(p2.x, p2.y, p2.radius, 0, Math.PI * 2);
@@ -428,7 +483,7 @@
         }
         ctx.restore();
 
-        // 쉘리 샷건 탄환 그리기
+        // 쉘리 샷건 탄환
         projectiles.forEach(proj => {
             ctx.beginPath();
             ctx.arc(proj.x, proj.y, proj.radius, 0, Math.PI * 2);
@@ -437,7 +492,7 @@
             ctx.closePath();
         });
 
-        // 니타 충격파 그리기
+        // 니타 충격파
         waves.forEach(wave => {
             ctx.beginPath();
             ctx.arc(wave.x, wave.y, wave.radius, 0, Math.PI * 2);
@@ -448,7 +503,6 @@
         });
     }
 
-    // 메인 게임 루프
     function loop() {
         update();
         draw();
